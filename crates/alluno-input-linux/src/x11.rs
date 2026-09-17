@@ -256,8 +256,9 @@ impl Server {
             y,
             0,
         )
-        .map_err(Error::backend)?;
-        self.conn.flush().map_err(Error::backend)
+        .map_err(Error::backend)?
+        .check()
+        .map_err(Error::backend)
     }
 }
 

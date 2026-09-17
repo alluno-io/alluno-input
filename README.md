@@ -5,13 +5,6 @@ pen, touch screen and game controllers. A host imports `alluno-input`, asks what
 emulate, opens devices by kind and feeds them normalized state. The kernel filter, the HID
 bus, `uinput`, `uhid` and Core Graphics sit under it and never show through the API.
 
-Status:
-
-- The user-space backends and the ViGEmBus path are what the Alluno desktop runs on Windows.
-- AllunoVHID for Windows builds but has not been loaded on a machine yet.
-- AllunoVHID for macOS has not been compiled yet (needs a Mac and an Apple entitlement).
-- The Linux host is checked by CI and has not been run against a game yet.
-
 ## Using the library
 
 ```toml
@@ -97,16 +90,6 @@ described in `driver/windows/README.md`; the macOS extension in `driver/macos/RE
 | Xbox One, Xbox Series | `Bus` (AllunoVHID), a HID gamepad | `Bus` (uhid, bound by `hid-microsoft`) | `Bus` with the extension |
 | MIDI, camera, microphone | `Unavailable` until a backend lands | same | same |
 
-On Windows the Xbox One and Series nodes are plain HID gamepads: SDL, Steam Input and
-Windows.Gaming.Input see them, XInput does not, because the inbox `xinputhid.sys` binds only
-to real Bluetooth devices. A game that reads XInput alone wants the Xbox 360 profile. On Linux
-and macOS the same identity is an Xbox pad to every game.
-
-A bus keyboard is a second keyboard the OS cannot tell from hardware. A host without the
-filter plugs one, and so does a host seating more than one client. The bus mouse answers
-`Unsupported` for absolute placement, because Windows maps an absolute HID mouse onto the
-primary monitor only; in a layered set the filter or `SendInput` takes that call.
-
 ## Windows: the AllunoInput filters
 
 A KMDF upper filter on `kbdclass` and `mouclass`. What it injects arrives the way hardware
@@ -119,10 +102,6 @@ start with `Keyboard` and `Mouse` (`KeyboardAllunoInput`, `MouseAllunoInput`), a
 | `\\.\KeyboardAllunoInput` | `0x000B2080` | `KEYBOARD_INPUT_DATA`, 12 bytes: unit, PS/2 Set 1 make code, flags (`0x01` break, `0x02` E0, `0x04` E1), reserved, extra |
 | `\\.\MouseAllunoInput` | `0x000F2080` | `MOUSE_INPUT_DATA`, 24 bytes: unit, flags (`0x01` absolute, `0x02` virtual desktop), button flags, wheel data, raw buttons, x, y, extra |
 
-Button flags: left `0x0001`/`0x0002`, right `0x0004`/`0x0008`, middle `0x0010`/`0x0020`,
-button 4 `0x0040`/`0x0080`, button 5 `0x0100`/`0x0200` (down/up), wheel `0x0400`, hwheel
-`0x0800`. `alluno_input_windows::scan` holds the key map; `driver/windows/README.md` has the field
-tables.
 
 ## Windows: the AllunoVHID bus
 
@@ -141,20 +120,6 @@ declares. The IOCTL contract is `driver/windows/vhid/vhid_ioctl.h`, mirrored by
 | `WAIT_OUTPUT` | `0x8A112010` | `u32` slot | pends until an output arrives: `u8` kind (0 report, 1 set feature), `u8` reserved, `u16` length, bytes |
 | `SET_FEATURE` | `0x8A112014` | as `INPUT` | |
 
-The driver answers `GET_FEATURE` from the table itself, keeps the last input for
-`GET_INPUT_REPORT`, and unplugs everything a file handle owned when that handle closes.
-Limits: 16 slots, 4096-byte descriptors, 512-byte reports, 32 feature reports per slot.
-
-A plug with kind 1 publishes an Xbox 360 device instead of a HID node: a child device with
-the wired controller's USB identity (`USB\VID_045E&PID_028E`, compatible id
-`USB\MS_COMP_XUSB10`) that Windows' own `xusb22` driver binds to, which is the path into
-XInput. The bus answers that driver's descriptor reads, its configuration and interface
-selection, the vendor request it makes during start, and the six packets a real pad sends on
-its interrupt pipe before streaming. `INPUT` then carries the 20-byte XUSB packet, and
-`WAIT_OUTPUT` returns the rumble (`00 08 00 large small`) and player-lamp (`01 03 n`) packets
-the game writes. With the bus installed, ViGEmBus is a fallback, not a requirement. This
-device has not been exercised against `xusb22` yet.
-
 ## HID profiles
 
 `alluno_input_core::hid` holds one descriptor, codec and feature table per profile, published
@@ -171,19 +136,6 @@ unchanged by AllunoVHID, `uhid` and the macOS extension:
 | Touch | `1234:5681` | `0x08`, 122 bytes, ten parallel contacts | | contact count maximum `0x09` |
 | Keyboard | `1234:5682` | `0x0A`, 18 bytes: modifiers and a 128-key bitmap | lamps (`0x0A`) | |
 | Mouse | `1234:5683` | `0x0B`, 8 bytes: five buttons, relative x and y, wheel, pan | | |
-
-None of these descriptors has met SDL, Steam or the Linux `hid-playstation` and
-`hid-nintendo` drivers yet; the descriptor tests check layout, not acceptance.
-
-## C ABI
-
-`cargo build -p alluno-input-ffi --release` produces `alluno_input_ffi.dll` and `alluno_input_ffi.lib`
-on Windows, `liballuno_input_ffi.so` and `.a` on Linux, `liballuno_input_ffi.dylib` and `.a` on macOS,
-declared in `crates/alluno-input-ffi/include/alluno_input.h`. Handles are opaque, every call returns a
-`ALLUNO_INPUT_*` code, and `alluno_input_last_error()` carries the message for the calling thread.
-`alluno_input_open_recording()` opens the testkit's recording host so a binding's tests need no
-driver. Keys, buttons and profiles are indexes into the port's `ALL` lists in the header's
-order, which `crates/alluno-input-ffi/tests/abi.rs` pins.
 
 ## License
 
