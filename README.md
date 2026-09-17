@@ -39,7 +39,7 @@ What each platform needs:
 | Platform | Without drivers | With drivers |
 |---|---|---|
 | Windows 10 or later, x64 | `SendInput` for keyboard and mouse, the Synthetic Pointer API for pen and touch, ViGEmBus for Xbox 360 and DualShock 4 | AllunoInput filters for keyboard and mouse, AllunoVHID for every controller profile, pen and touch |
-| Linux | write access to `/dev/uinput`, and to `/dev/uhid` for the HID controller profiles | |
+| Linux | write access to `/dev/uinput`, or an X server with XTest for keyboard and mouse only; `/dev/uhid` for the HID controller profiles | |
 | macOS | the Accessibility permission for the process (Core Graphics drops posts silently without it) | the AllunoVHID extension for controllers and touch |
 
 ## Workspace
@@ -51,7 +51,7 @@ Rust 1.97, edition 2024.
 | `alluno-input` | The facade every consumer depends on: the port plus the `Input` host for the target |
 | `alluno-input-core` | The port: `Host`, the device traits, the state vocabulary, `Capabilities`; `hid`, the shared report descriptors, codecs and bus wire layouts |
 | `alluno-input-windows` | The AllunoInput filter client, `SendInput`, the Synthetic Pointer API, the AllunoVHID bus client and the ViGEmBus client |
-| `alluno-input-linux` | `uinput` devices and `uhid` controllers |
+| `alluno-input-linux` | `uinput` devices, `uhid` controllers and XTest keyboard and mouse |
 | `alluno-input-macos` | Core Graphics keyboard, mouse and pen; the AllunoVHID DriverKit client |
 | `alluno-input-ffi` | The C ABI and `include/alluno_input.h` |
 | `alluno-input-testkit` | A recording `Host` for consumers' tests |
@@ -87,8 +87,8 @@ described in `driver/windows/README.md`; the macOS extension in `driver/macos/RE
 
 | Kind | Windows | Linux | macOS |
 |---|---|---|---|
-| Keyboard | `Kernel` with the filter, else `Bus` with AllunoVHID, else `UserApi` (`SendInput`) | `Bus` (uinput) | `UserApi` (Core Graphics); `bus_keyboard` with the extension |
-| Mouse | `Kernel` with the filter, else `UserApi` (`SendInput`); `bus_mouse` adds a relative AllunoVHID node | `Bus` (uinput) | `UserApi` (Core Graphics); `bus_mouse` with the extension |
+| Keyboard | `Kernel` with the filter, else `Bus` with AllunoVHID, else `UserApi` (`SendInput`) | `Bus` (uinput), else `UserApi` (XTest); `bus_keyboard` and `user_keyboard` pick one | `UserApi` (Core Graphics); `bus_keyboard` with the extension |
+| Mouse | `Kernel` with the filter, else `UserApi` (`SendInput`); `bus_mouse` adds a relative AllunoVHID node | `Bus` (uinput), else `UserApi` (XTest); `bus_mouse` and `user_mouse` pick one | `UserApi` (Core Graphics); `bus_mouse` with the extension |
 | Pen | `Bus` with AllunoVHID, else `UserApi` (Synthetic Pointer) | `Bus` (uinput tablet) | `UserApi` (Core Graphics tablet) |
 | Touch | `Bus` with AllunoVHID, else `UserApi` (Synthetic Pointer) | `Bus` (uinput, protocol B) | `Bus` with the extension, else `Unavailable` |
 | Xbox 360 | `Bus` (AllunoVHID's XUSB device, or ViGEmBus without it), an XInput slot | `Bus` (uinput, `EV_FF` rumble) | `Unavailable` |

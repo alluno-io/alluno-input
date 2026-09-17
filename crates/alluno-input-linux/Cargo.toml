@@ -1,6 +1,6 @@
 [package]
 name = "alluno-input-linux"
-description = "The Linux host for alluno-input: uinput virtual devices"
+description = "The Linux host for alluno-input: uinput and uhid virtual devices, and XTest for an X server that must stay self-contained"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -13,3 +13,4 @@ alluno-input-core = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 libc = { workspace = true }
+x11rb = { version = "0.14", features = ["xtest"] }

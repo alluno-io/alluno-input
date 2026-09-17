@@ -14,6 +14,7 @@ use crate::uhid;
 use crate::uhid_pad::UhidGamepad;
 use crate::uinput;
 use crate::uinput_pad::UinputGamepad;
+use crate::x11::{self, X11Keyboard, X11Mouse};
 
 const UINPUT_MISSING: &str =
     "/dev/uinput is not writable; load the uinput module and join the input group";
@@ -40,6 +41,32 @@ impl Input {
         } else {
             Err(Error::unavailable(UINPUT_MISSING))
         }
+    }
+
+    /// The uinput keyboard, a device the whole machine sees.
+    pub fn bus_keyboard(&self) -> Result<Box<dyn Keyboard>> {
+        Self::require_uinput()?;
+        Ok(Box::new(UinputKeyboard::open(&self.name("Keyboard"))?))
+    }
+
+    /// The uinput mouse, a device the whole machine sees.
+    pub fn bus_mouse(&self) -> Result<Box<dyn Mouse>> {
+        Self::require_uinput()?;
+        Ok(Box::new(UinputMouse::open(&self.name("Mouse"))?))
+    }
+
+    /// The XTest keyboard, events that exist only inside the X server in `DISPLAY`.
+    pub fn user_keyboard(&self) -> Result<Box<dyn Keyboard>> {
+        Ok(Box::new(
+            X11Keyboard::open().map_err(|_| Error::unavailable(x11::X11_MISSING))?,
+        ))
+    }
+
+    /// The XTest mouse, events that exist only inside the X server in `DISPLAY`.
+    pub fn user_mouse(&self) -> Result<Box<dyn Mouse>> {
+        Ok(Box::new(
+            X11Mouse::open().map_err(|_| Error::unavailable(x11::X11_MISSING))?,
+        ))
     }
 
     fn require_uhid() -> Result<()> {
@@ -87,6 +114,15 @@ impl Host for Input {
                 Backing::Unavailable(UINPUT_MISSING.to_string())
             }
         };
+        let pointer = || {
+            if uinput {
+                Backing::Bus
+            } else if x11::available() {
+                Backing::UserApi
+            } else {
+                Backing::Unavailable(format!("{UINPUT_MISSING}; {}", x11::X11_MISSING))
+            }
+        };
         let pad = |profile: GamepadProfile| {
             let backing = match profile {
                 GamepadProfile::Xbox360 | GamepadProfile::DualShock4 if uinput => Backing::Bus,
@@ -97,8 +133,8 @@ impl Host for Input {
             (profile, backing)
         };
         Capabilities {
-            keyboard: backing(),
-            mouse: backing(),
+            keyboard: pointer(),
+            mouse: pointer(),
             pen: backing(),
             touch: backing(),
             gamepads: GamepadProfile::ALL.iter().copied().map(pad).collect(),
@@ -117,13 +153,17 @@ impl Host for Input {
     }
 
     fn keyboard(&self) -> Result<Box<dyn Keyboard>> {
-        Self::require_uinput()?;
-        Ok(Box::new(UinputKeyboard::open(&self.name("Keyboard"))?))
+        match self.bus_keyboard() {
+            Err(Error::Unavailable(_)) => self.user_keyboard(),
+            other => other,
+        }
     }
 
     fn mouse(&self) -> Result<Box<dyn Mouse>> {
-        Self::require_uinput()?;
-        Ok(Box::new(UinputMouse::open(&self.name("Mouse"))?))
+        match self.bus_mouse() {
+            Err(Error::Unavailable(_)) => self.user_mouse(),
+            other => other,
+        }
     }
 
     fn pen(&self) -> Result<Box<dyn Pen>> {
