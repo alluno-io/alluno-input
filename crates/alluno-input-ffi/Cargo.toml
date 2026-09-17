@@ -1,0 +1,16 @@
+[package]
+name = "alluno-input-ffi"
+description = "The C ABI over alluno-input: every device the runtime hands out, callable from anything that links a C library"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[lib]
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+alluno-input = { workspace = true }
+alluno-input-testkit = { workspace = true }

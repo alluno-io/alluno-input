@@ -1,0 +1,26 @@
+[package]
+name = "alluno-input-windows"
+description = "The Windows host for alluno-input: the AllunoInput kernel filter, SendInput, the Synthetic Pointer API and the ViGEmBus gamepad client"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+alluno-input-core = { workspace = true }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { workspace = true, features = [
+    "Win32_Devices_DeviceAndDriverInstallation",
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_Storage_FileSystem",
+    "Win32_System_IO",
+    "Win32_System_Threading",
+    "Win32_UI_Controls",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_Input_Pointer",
+    "Win32_UI_WindowsAndMessaging",
+] }

@@ -36,3 +36,6 @@ test/*.rsp
 
 # Temp
 *.tmp
+
+# Rust
+/target/

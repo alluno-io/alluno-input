@@ -1,0 +1,15 @@
+[package]
+name = "alluno-input-linux"
+description = "The Linux host for alluno-input: uinput virtual devices"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+alluno-input-core = { workspace = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+libc = { workspace = true }

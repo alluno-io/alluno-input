@@ -1,0 +1,29 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.package]
+version = "2.0.0"
+edition = "2024"
+rust-version = "1.97"
+license = "MIT"
+repository = "https://github.com/alluno-io/alluno-input"
+authors = ["Adidharma Torutama <adidharmatoru@alluno.io>"]
+
+[workspace.dependencies]
+alluno-input-core = { path = "crates/alluno-input-core", version = "2.0.0" }
+alluno-input-windows = { path = "crates/alluno-input-windows", version = "2.0.0" }
+alluno-input-linux = { path = "crates/alluno-input-linux", version = "2.0.0" }
+alluno-input-macos = { path = "crates/alluno-input-macos", version = "2.0.0" }
+alluno-input = { path = "crates/alluno-input", version = "2.0.0" }
+alluno-input-testkit = { path = "crates/alluno-input-testkit", version = "2.0.0" }
+
+thiserror = "2"
+libc = "0.2"
+windows = "0.62"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true

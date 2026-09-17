@@ -1,0 +1,56 @@
+;
+; AllunoVHID.inf
+;
+
+[Version]
+Signature="$Windows NT$"
+Class=System
+ClassGuid={4d36e97d-e325-11ce-bfc1-08002be10318}
+Provider=%ManufacturerName%
+CatalogFile=AllunoVHID.cat
+DriverVer=
+PnpLockdown=1
+
+[DestinationDirs]
+DefaultDestDir = 12
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+AllunoVHID.sys = 1,,
+
+[Manufacturer]
+%ManufacturerName%=Standard,NT$ARCH$
+
+[Standard.NT$ARCH$]
+%DeviceName%=AllunoVHID_Device, Root\AllunoVHID
+
+[AllunoVHID_Device.NT]
+CopyFiles=Drivers_Dir
+
+[Drivers_Dir]
+AllunoVHID.sys
+
+[AllunoVHID_Device.NT.Services]
+AddService = AllunoVHID,%SPSVCINST_ASSOCSERVICE%, AllunoVHID_Service_Inst
+
+[AllunoVHID_Service_Inst]
+DisplayName    = %ServiceDesc%
+ServiceType    = 1
+StartType      = 3
+ErrorControl   = 1
+ServiceBinary  = %12%\AllunoVHID.sys
+
+[AllunoVHID_Device.NT.Wdf]
+KmdfService = AllunoVHID, AllunoVHID_wdfsect
+
+[AllunoVHID_wdfsect]
+KmdfLibraryVersion = $KMDFVERSION$
+
+[Strings]
+SPSVCINST_ASSOCSERVICE = 0x00000002
+ManufacturerName = "Alluno"
+DiskName = "AllunoVHID Installation Disk"
+DeviceName = "Alluno Virtual HID Bus"
+ServiceDesc = "Alluno Virtual HID Bus"

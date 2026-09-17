@@ -1,0 +1,12 @@
+[package]
+name = "alluno-input-testkit"
+description = "An in-memory alluno-input host that records everything it is fed, for consumers' tests"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+alluno-input-core = { workspace = true }

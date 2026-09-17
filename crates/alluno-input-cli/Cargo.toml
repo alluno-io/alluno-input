@@ -1,0 +1,17 @@
+[package]
+name = "alluno-input-cli"
+description = "alluno-input on the command line: probe a machine, press a key, plug a pad"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[[bin]]
+name = "alluno-input"
+path = "src/main.rs"
+
+[dependencies]
+alluno-input = { workspace = true }
