@@ -19,7 +19,7 @@ pub mod sendinput;
 pub mod vhid;
 pub mod vigem;
 
+mod host;
 mod report;
-mod runtime;
 
-pub use runtime::Runtime;
+pub use host::Input;

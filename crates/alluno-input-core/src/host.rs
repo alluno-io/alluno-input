@@ -16,7 +16,7 @@ pub struct Options {
 /// The answer a host gives for a passthrough device it has no backend for yet.
 pub const PASSTHROUGH_PENDING: &str = "passthrough has no backend on this host yet";
 
-/// A platform's runtime: probe what it can do, open it on the injecting thread,
+/// A platform's host: probe what it can do, open it on the injecting thread,
 /// hand out devices.
 ///
 /// Implementors are `!Send` by construction; see the crate docs for why.
@@ -24,8 +24,18 @@ pub trait Host: Sized {
     /// Answers what this machine can emulate without opening anything.
     fn probe() -> Capabilities;
 
+    /// [`Host::probe`] under the name some callers expect.
+    fn check() -> Capabilities {
+        Self::probe()
+    }
+
     /// Opens the host on the calling thread.
     fn open(options: Options) -> Result<Self>;
+
+    /// [`Host::open`] under the name some callers expect.
+    fn new(options: Options) -> Result<Self> {
+        Self::open(options)
+    }
 
     fn keyboard(&self) -> Result<Box<dyn Keyboard>>;
     fn mouse(&self) -> Result<Box<dyn Mouse>>;

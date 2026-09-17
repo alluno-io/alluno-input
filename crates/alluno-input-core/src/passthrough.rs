@@ -1,7 +1,7 @@
 //! Passthrough of a client's own devices into the host: MIDI, camera and
 //! microphone. None of these is a HID, but a host asks the same questions of
 //! each (can this machine emulate it, open one, feed it), so they live behind
-//! the same runtime and the same capability answer.
+//! the same host and the same capability answer.
 
 use crate::Result;
 

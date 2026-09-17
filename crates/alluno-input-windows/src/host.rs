@@ -26,13 +26,13 @@ const VHID_MISSING: &str = "the AllunoVHID bus is not installed";
 /// XInput exposes four player slots and the bus refuses a fifth.
 const XINPUT_SLOTS: u8 = 4;
 
-/// The Windows runtime.
-pub struct Runtime {
+/// The Windows host.
+pub struct Input {
     options: Options,
     _thread: PhantomData<*const ()>,
 }
 
-impl Runtime {
+impl Input {
     /// The kernel keyboard alone, for a host that layers it over the user one.
     pub fn kernel_keyboard(&self) -> Result<Box<dyn Keyboard>> {
         KernelKeyboard::open()
@@ -105,7 +105,7 @@ impl Runtime {
     }
 }
 
-impl Host for Runtime {
+impl Host for Input {
     fn probe() -> Capabilities {
         let xusb = GamepadBus::connect().is_ok();
         let vhid = vhid::installed();

@@ -1,9 +1,9 @@
 # alluno-input
 
-Virtual input devices for Windows, Linux and macOS behind one Rust runtime: keyboard, mouse,
+Virtual input devices for Windows, Linux and macOS behind one Rust API: keyboard, mouse,
 pen, touch screen and game controllers. A host imports `alluno-input`, asks what the machine can
 emulate, opens devices by kind and feeds them normalized state. The kernel filter, the HID
-bus, `uinput`, `uhid` and Core Graphics sit under the runtime and never show through the API.
+bus, `uinput`, `uhid` and Core Graphics sit under it and never show through the API.
 
 Status:
 
@@ -20,17 +20,17 @@ alluno-input = { git = "https://github.com/alluno-io/alluno-input.git" }
 ```
 
 ```rust
-use alluno_input::{Host, Key, Options, Runtime};
+use alluno_input::{Host, Key, Options, Input};
 
-let caps = Runtime::probe();
-let host = Runtime::open(Options::default())?;
+let caps = Input::probe();
+let host = Input::open(Options::default())?;
 let mut keyboard = host.keyboard()?;
 keyboard.key(Key::A, true)?;
 keyboard.key(Key::A, false)?;
 ```
 
-`Runtime::probe()` reports how every device kind would be backed before anything is opened.
-The runtime and every device it hands out are not `Send`: open them on the thread that injects.
+`Input::probe()` reports how every device kind would be backed before anything is opened.
+`Input` and every device it hands out are not `Send`: open them on the thread that injects.
 Coordinates are `0..=65535` across the virtual desktop; gamepad state uses the XInput layout
 whatever the profile.
 
@@ -48,7 +48,7 @@ Rust 1.97, edition 2024.
 
 | Crate | Role |
 |---|---|
-| `alluno-input` | The facade every consumer depends on: the port plus the runtime for the target |
+| `alluno-input` | The facade every consumer depends on: the port plus the `Input` host for the target |
 | `alluno-input-core` | The port: `Host`, the device traits, the state vocabulary, `Capabilities`; `hid`, the shared report descriptors, codecs and bus wire layouts |
 | `alluno-input-windows` | The AllunoInput filter client, `SendInput`, the Synthetic Pointer API, the AllunoVHID bus client and the ViGEmBus client |
 | `alluno-input-linux` | `uinput` devices and `uhid` controllers |

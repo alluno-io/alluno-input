@@ -30,12 +30,12 @@ const NO_EXTENSION: &str =
     "the AllunoVHID DriverKit extension is not activated; it needs Apple's HID entitlement";
 const XINPUT_NONE: &str = "the Xbox 360 identity is XUSB, not HID; ask for XboxSeries";
 
-/// The macOS runtime.
-pub struct Runtime {
+/// The macOS host.
+pub struct Input {
     _thread: PhantomData<*const ()>,
 }
 
-impl Runtime {
+impl Input {
     /// The Core Graphics pen alone.
     pub fn user_pen(&self) -> Result<Box<dyn Pen>> {
         Ok(Box::new(CgPen::open()?))
@@ -65,7 +65,7 @@ impl Runtime {
     }
 }
 
-impl Host for Runtime {
+impl Host for Input {
     fn probe() -> Capabilities {
         let vhid = vhid::installed();
         let pad = |profile: GamepadProfile| {

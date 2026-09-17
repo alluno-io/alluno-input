@@ -20,13 +20,13 @@ const UINPUT_MISSING: &str =
 const UHID_MISSING: &str = "/dev/uhid is not writable; load the uhid module or grant access to it";
 const DEFAULT_NAME: &str = "Alluno Virtual";
 
-/// The Linux runtime.
-pub struct Runtime {
+/// The Linux host.
+pub struct Input {
     options: Options,
     _thread: PhantomData<*const ()>,
 }
 
-impl Runtime {
+impl Input {
     fn name(&self, kind: &str) -> String {
         match &self.options.device_name {
             Some(name) => format!("{name} {kind}"),
@@ -76,7 +76,7 @@ impl Runtime {
     }
 }
 
-impl Host for Runtime {
+impl Host for Input {
     fn probe() -> Capabilities {
         let uinput = uinput::available();
         let uhid = uhid::available();

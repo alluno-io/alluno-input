@@ -1,4 +1,4 @@
-//! The C ABI over the runtime, declared for C callers in `include/alluno_input.h`.
+//! The C ABI over the host, declared for C callers in `include/alluno_input.h`.
 //!
 //! Every handle is an opaque pointer the caller closes; every call answers a
 //! `ALLUNO_INPUT_*` code and leaves a message behind `alluno_input_last_error` on the
@@ -14,8 +14,9 @@ use std::cell::RefCell;
 use std::ffi::{CStr, CString, c_char, c_void};
 
 use alluno_input::{
-    Backing, Capabilities, Error, Gamepad, GamepadOutput, GamepadProfile, GamepadState, Host, Key,
-    Keyboard, Mouse, MouseButton, Options, Pen, PenState, Runtime, Touch, TouchContact, TouchState,
+    Backing, Capabilities, Error, Gamepad, GamepadOutput, GamepadProfile, GamepadState, Host,
+    Input, Key, Keyboard, Mouse, MouseButton, Options, Pen, PenState, Touch, TouchContact,
+    TouchState,
 };
 use alluno_input_testkit::{FakeHost, OutputFeed, Recorder, fake_gamepad};
 
@@ -180,11 +181,11 @@ pub type AllunoInputOutputCallback =
     Option<unsafe extern "C" fn(user: *mut c_void, output: *const AllunoInputGamepadOutput)>;
 
 enum Inner {
-    Real(Runtime),
+    Real(Input),
     Fake(FakeHost),
 }
 
-/// An opened runtime.
+/// An opened host.
 pub struct AllunoInputHost {
     inner: Inner,
 }
@@ -339,11 +340,11 @@ pub unsafe extern "C" fn alluno_input_probe(out: *mut AllunoInputCapabilities) -
     if out.is_null() {
         return invalid("null capabilities");
     }
-    unsafe { *out = AllunoInputCapabilities::from(&Runtime::probe()) };
+    unsafe { *out = AllunoInputCapabilities::from(&Input::probe()) };
     ALLUNO_INPUT_OK
 }
 
-/// Opens the runtime on the calling thread; `device_name` may be null.
+/// Opens the host on the calling thread; `device_name` may be null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn alluno_input_open(device_name: *const c_char) -> *mut AllunoInputHost {
     let mut options = Options::default();
@@ -351,7 +352,7 @@ pub unsafe extern "C" fn alluno_input_open(device_name: *const c_char) -> *mut A
         let name = unsafe { CStr::from_ptr(device_name) };
         options.device_name = name.to_str().ok().map(str::to_string);
     }
-    match Runtime::open(options) {
+    match Input::open(options) {
         Ok(host) => Box::into_raw(Box::new(AllunoInputHost {
             inner: Inner::Real(host),
         })),

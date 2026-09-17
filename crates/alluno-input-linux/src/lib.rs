@@ -17,8 +17,8 @@ pub mod uhid_pad;
 pub mod uinput;
 pub mod uinput_pad;
 
+mod host;
 mod report;
-mod runtime;
 
+pub use host::Input;
 pub use report::GamepadKind;
-pub use runtime::Runtime;

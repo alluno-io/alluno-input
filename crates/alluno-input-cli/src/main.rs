@@ -4,8 +4,8 @@
 use std::time::{Duration, Instant};
 
 use alluno_input::{
-    GamepadOutput, GamepadProfile, GamepadState, Host, Key, Options, PenState, Runtime,
-    TouchContact, TouchState, buttons,
+    GamepadOutput, GamepadProfile, GamepadState, Host, Input, Key, Options, PenState, TouchContact,
+    TouchState, buttons,
 };
 
 fn main() {
@@ -58,7 +58,7 @@ fn key(name: Option<&str>) -> alluno_input::Result<()> {
             "unknown key; try a letter, a digit, space, enter or escape",
         )
     })?;
-    let host = Runtime::open(Options::default())?;
+    let host = Input::open(Options::default())?;
     let mut keyboard = host.keyboard()?;
     keyboard.key(key, true)?;
     keyboard.key(key, false)?;
@@ -82,7 +82,7 @@ fn pad(profile: Option<&str>, seconds: Option<&str>) -> alluno_input::Result<()>
         }
     };
     let hold = Duration::from_secs(seconds.and_then(|s| s.parse().ok()).unwrap_or(5));
-    let host = Runtime::open(Options::default())?;
+    let host = Input::open(Options::default())?;
     let mut pad = host.gamepad(profile)?;
     pad.on_output(Box::new(|output: GamepadOutput| {
         println!("output {output:?}")
@@ -104,7 +104,7 @@ fn pad(profile: Option<&str>, seconds: Option<&str>) -> alluno_input::Result<()>
 }
 
 fn mouse() -> alluno_input::Result<()> {
-    let host = Runtime::open(Options::default())?;
+    let host = Input::open(Options::default())?;
     let mut mouse = host.mouse()?;
     for _ in 0..20 {
         mouse.move_rel(4, 0)?;
@@ -120,7 +120,7 @@ fn mouse() -> alluno_input::Result<()> {
 }
 
 fn pen() -> alluno_input::Result<()> {
-    let host = Runtime::open(Options::default())?;
+    let host = Input::open(Options::default())?;
     let mut pen = host.pen()?;
     let mut sample = PenState {
         x: 32768,
@@ -145,7 +145,7 @@ fn pen() -> alluno_input::Result<()> {
 }
 
 fn touch() -> alluno_input::Result<()> {
-    let host = Runtime::open(Options::default())?;
+    let host = Input::open(Options::default())?;
     let mut touch = host.touch()?;
     let mut contact = TouchContact {
         id: 1,

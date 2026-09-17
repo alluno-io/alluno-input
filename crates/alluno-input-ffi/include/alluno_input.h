@@ -1,5 +1,5 @@
 /*
- * alluno-input: virtual input devices behind one runtime, the C ABI.
+ * alluno-input: virtual input devices behind one host, the C ABI.
  *
  * Open a host on the thread that will inject and keep every device on it.
  * Every call answers a ALLUNO_INPUT_* code; alluno_input_last_error() carries the message
@@ -32,7 +32,7 @@ extern "C" {
 #define ALLUNO_INPUT_BACKING_USER_API     2
 #define ALLUNO_INPUT_BACKING_UNAVAILABLE  3
 
-/* Gamepad profiles, in the runtime's order. */
+/* Gamepad profiles, in the host's order. */
 #define ALLUNO_INPUT_PROFILE_XBOX360      0
 #define ALLUNO_INPUT_PROFILE_XBOX_ONE     1
 #define ALLUNO_INPUT_PROFILE_XBOX_SERIES  2
