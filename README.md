@@ -33,7 +33,7 @@ What each platform needs:
 |---|---|---|
 | Windows 10 or later, x64 | `SendInput` for keyboard and mouse, the Synthetic Pointer API for pen and touch, ViGEmBus for Xbox 360 and DualShock 4 | AllunoInput filters for keyboard and mouse, AllunoVHID for every controller profile, pen and touch |
 | Linux | write access to `/dev/uinput`, or an X server with XTest for keyboard and mouse only; `/dev/uhid` for the HID controller profiles | |
-| macOS | the Accessibility permission for the process (Core Graphics drops posts silently without it) | the AllunoVHID extension for controllers and touch |
+| macOS | the Accessibility permission for the process: `Input::request_accessibility()` opens the system dialog, and `probe()` reports keyboard, mouse and pen unavailable until it is granted (Core Graphics drops posts silently without it) | the AllunoVHID extension for controllers and touch |
 
 ## Workspace
 

@@ -20,19 +20,10 @@ surface drift against the DriverKit SDK it is built with.
 | `AllunoVHIDUserClient.iig` / `.cpp` | Six external methods: version, plug, unplug, input, poll output, set feature |
 | `vhid_wire.h` | The packed headers and limits |
 | `Info.plist` | Bundle id `io.alluno.AllunoVHID`; the `AllunoVHIDBus` and `AllunoVHIDUserClient` personalities |
-| `AllunoVHID.entitlements` | DriverKit, the HID device family, user-client access for `io.alluno.desktop`, app sandbox |
-
-## Building and activating
-
-Xcode with the DriverKit SDK and an account holding the entitlements above.
-
-1. Create a DriverKit target with bundle id `io.alluno.AllunoVHID`, add the files, and set
-   the entitlements file. The host app (`io.alluno.desktop`) needs
-   `com.apple.developer.system-extension.install` and
-   `com.apple.developer.driverkit.userclient-access` naming the extension.
-2. Embed the `.dext` in the app under `Contents/Library/SystemExtensions`.
-3. Activate it with `OSSystemExtensionRequest.activationRequest`; the user approves it once
-   in System Settings. `alluno-input probe` then reports the controller profiles and touch as `Bus`.
+| `AllunoVHID.entitlements` | DriverKit, the HID device family, app sandbox |
+| `AllunoVHID.dev.entitlements` | The same plus any-client access, for a Mac with SIP off |
+| `../Activator` | A windowless app that embeds the extension and asks the system to activate it; `deactivate` as its argument removes it |
+| `../project.yml` | The xcodegen spec that generates the Xcode project for both targets |
 
 ## Client
 

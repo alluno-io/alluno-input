@@ -3,11 +3,60 @@
 #![cfg(target_os = "macos")]
 
 use std::collections::HashSet;
+use std::time::{Duration, Instant};
 
 use alluno_input_core::{Key, MouseButton, PenState};
-use alluno_input_macos::cg::{Desktop, button_events, pen_event};
+use alluno_input_macos::cg::{
+    ClickRun, Desktop, accessibility_trusted, button_events, double_click_interval, pen_event,
+};
 use alluno_input_macos::keymap;
 use core_graphics::event::CGEventType;
+
+#[test]
+fn clicks_within_the_interval_at_the_same_spot_count_up() {
+    let mut run = ClickRun::new(Duration::from_millis(500));
+    let t0 = Instant::now();
+    assert_eq!(run.press(MouseButton::Left, (10.0, 10.0), t0), 1);
+    assert_eq!(run.current(MouseButton::Left), 1);
+    let t1 = t0 + Duration::from_millis(200);
+    assert_eq!(run.press(MouseButton::Left, (12.0, 9.0), t1), 2);
+    assert_eq!(run.current(MouseButton::Left), 2);
+    let t2 = t1 + Duration::from_millis(200);
+    assert_eq!(run.press(MouseButton::Left, (11.0, 11.0), t2), 3);
+    assert_eq!(run.current(MouseButton::Left), 3);
+}
+
+#[test]
+fn a_slow_far_or_other_button_click_starts_a_new_run() {
+    let mut run = ClickRun::new(Duration::from_millis(500));
+    let t0 = Instant::now();
+    run.press(MouseButton::Left, (10.0, 10.0), t0);
+    let slow = t0 + Duration::from_millis(600);
+    assert_eq!(run.press(MouseButton::Left, (10.0, 10.0), slow), 1);
+    let quick = slow + Duration::from_millis(100);
+    assert_eq!(run.press(MouseButton::Left, (10.0, 10.0), quick), 2);
+    let far = quick + Duration::from_millis(100);
+    assert_eq!(run.press(MouseButton::Left, (40.0, 10.0), far), 1);
+    let other = far + Duration::from_millis(100);
+    assert_eq!(run.press(MouseButton::Right, (40.0, 10.0), other), 1);
+    assert_eq!(run.current(MouseButton::Left), 1);
+}
+
+#[test]
+fn the_trust_probe_answers_without_opening_a_dialog() {
+    let trusted = accessibility_trusted();
+    let caps = <alluno_input_macos::Input as alluno_input_core::Host>::probe();
+    assert_eq!(caps.keyboard.available(), trusted);
+    assert_eq!(caps.mouse.available(), trusted);
+    assert_eq!(caps.pen.available(), trusted);
+}
+
+#[test]
+fn the_double_click_interval_is_a_sane_number_of_seconds() {
+    let interval = double_click_interval();
+    assert!(interval >= Duration::from_millis(50), "{interval:?}");
+    assert!(interval <= Duration::from_secs(5), "{interval:?}");
+}
 
 #[test]
 fn every_key_has_its_own_virtual_key_code() {

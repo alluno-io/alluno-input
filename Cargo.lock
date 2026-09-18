@@ -48,6 +48,8 @@ name = "alluno-input-macos"
 version = "2.0.0"
 dependencies = [
  "alluno-input-core",
+ "core-foundation",
+ "core-foundation-sys",
  "core-graphics",
  "foreign-types",
 ]

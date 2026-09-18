@@ -6,6 +6,8 @@
 	<true/>
 	<key>com.apple.developer.driverkit.family.hid.device</key>
 	<true/>
+	<key>com.apple.developer.driverkit.allow-any-userclient-access</key>
+	<true/>
 	<key>com.apple.security.app-sandbox</key>
 	<true/>
 </dict>

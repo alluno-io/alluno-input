@@ -28,6 +28,8 @@ use vhid::{VhidKeyboard, VhidMouse, VhidPad, VhidPen, VhidTouch};
 
 const NO_EXTENSION: &str =
     "the AllunoVHID DriverKit extension is not activated; it needs Apple's HID entitlement";
+const NO_ACCESSIBILITY: &str = "the Accessibility permission is not granted; switch this app on \
+     under System Settings, Privacy & Security, Accessibility";
 const XINPUT_NONE: &str = "the Xbox 360 identity is XUSB, not HID; ask for XboxSeries";
 
 /// The macOS host.
@@ -63,11 +65,35 @@ impl Input {
     pub fn vhid_installed() -> bool {
         vhid::installed()
     }
+
+    /// Whether the system lets this process post keyboard, mouse and pen events.
+    ///
+    /// Without the permission every Core Graphics post is dropped silently, so
+    /// [`Host::probe`] reports those three as unavailable until it is granted.
+    /// The devices open either way; a grant takes effect on the next event.
+    pub fn accessibility_trusted() -> bool {
+        cg::accessibility_trusted()
+    }
+
+    /// Asks the system for that permission: the dialog that points at the
+    /// Accessibility pane opens once, and this app is listed there for the user
+    /// to switch on. Answers whether the permission is granted now.
+    pub fn request_accessibility() -> bool {
+        cg::request_accessibility()
+    }
 }
 
 impl Host for Input {
     fn probe() -> Capabilities {
         let vhid = vhid::installed();
+        let trusted = cg::accessibility_trusted();
+        let user = || {
+            if trusted {
+                Backing::UserApi
+            } else {
+                Backing::Unavailable(NO_ACCESSIBILITY.to_string())
+            }
+        };
         let pad = |profile: GamepadProfile| {
             let backing = if !PadCodec::supports(profile) {
                 Backing::Unavailable(XINPUT_NONE.to_string())
@@ -79,9 +105,9 @@ impl Host for Input {
             (profile, backing)
         };
         Capabilities {
-            keyboard: Backing::UserApi,
-            mouse: Backing::UserApi,
-            pen: Backing::UserApi,
+            keyboard: user(),
+            mouse: user(),
+            pen: user(),
             touch: if vhid {
                 Backing::Bus
             } else {
