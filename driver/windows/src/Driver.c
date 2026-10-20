@@ -158,6 +158,7 @@ NTSTATUS CreateControlDevice(WDFDEVICE Device)
     }
 
     WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&controlAttributes, CONTROL_EXTENSION);
+    controlAttributes.ExecutionLevel = WdfExecutionLevelPassive;
 
     status = WdfDeviceCreate(&pInit, &controlAttributes, &controlDev);
     if (!NT_SUCCESS(status))
@@ -338,44 +339,45 @@ VOID EvtIoDeviceControl(
         if (!NT_SUCCESS(status))
             break;
 
-        // Send to all connected filter devices
+        // Send to the first connected filter device
         {
-            ULONG i, count;
+            ULONG i, count, consumed = 0;
             size_t inputCount = bufferSize / ALLUNO_INPUT_DATA_SIZE;
             PVOID end = (PUCHAR)inputData + inputCount * ALLUNO_INPUT_DATA_SIZE;
+            CONNECT_DATA target = { 0 };
             KIRQL oldIrql;
 
             WdfWaitLockAcquire(FilterDeviceCollectionLock, NULL);
             count = WdfCollectionGetCount(FilterDeviceCollection);
+            for (i = 0; i < count; i++) {
+                hFilterDevice = WdfCollectionGetItem(FilterDeviceCollection, i);
+                filterExt = FilterGetData(hFilterDevice);
+                if (filterExt->UpperConnectData.ClassService != NULL
+                    && filterExt->UpperConnectData.ClassDeviceObject != NULL) {
+                    target = filterExt->UpperConnectData;
+                    ObReferenceObject(target.ClassDeviceObject);
+                    break;
+                }
+            }
             WdfWaitLockRelease(FilterDeviceCollectionLock);
 
             if (count == 0) {
                 status = STATUS_DEVICE_NOT_CONNECTED;
                 break;
             }
+            if (target.ClassService == NULL)
+                break;
 
             KeRaiseIrql(DISPATCH_LEVEL, &oldIrql);
-
-            for (i = 0; i < count; i++) {
-                ULONG consumed = 0;
-
-                WdfWaitLockAcquire(FilterDeviceCollectionLock, NULL);
-                hFilterDevice = WdfCollectionGetItem(FilterDeviceCollection, i);
-                WdfWaitLockRelease(FilterDeviceCollectionLock);
-
-                filterExt = FilterGetData(hFilterDevice);
-                if (filterExt->UpperConnectData.ClassService != NULL) {
-                    ((PSERVICE_CALLBACK_ROUTINE)(ULONG_PTR)filterExt->UpperConnectData.ClassService)(
-                        filterExt->UpperConnectData.ClassDeviceObject,
-                        inputData,
-                        end,
-                        &consumed);
-                    bytesTransferred += consumed * ALLUNO_INPUT_DATA_SIZE;
-                    break;
-                }
-            }
-
+            ((PSERVICE_CALLBACK_ROUTINE)(ULONG_PTR)target.ClassService)(
+                target.ClassDeviceObject,
+                inputData,
+                end,
+                &consumed);
             KeLowerIrql(oldIrql);
+
+            ObDereferenceObject(target.ClassDeviceObject);
+            bytesTransferred = consumed * ALLUNO_INPUT_DATA_SIZE;
         }
         break;
     }
