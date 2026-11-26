@@ -228,6 +228,72 @@ fn modifier_mask() -> CGEventFlags {
         | CGEventFlags::CGEventFlagCommand
 }
 
+/// The flags a Mac keyboard puts on a key of its own: the Globe flag on the arrow, navigation and
+/// F keys, the keypad flag on the arrows and the keypad.
+pub fn key_flags(key: Key) -> CGEventFlags {
+    let globe = CGEventFlags::CGEventFlagSecondaryFn;
+    let keypad = CGEventFlags::CGEventFlagNumericPad;
+    match key {
+        Key::Left | Key::Right | Key::Up | Key::Down => globe | keypad,
+        Key::F1
+        | Key::F2
+        | Key::F3
+        | Key::F4
+        | Key::F5
+        | Key::F6
+        | Key::F7
+        | Key::F8
+        | Key::F9
+        | Key::F10
+        | Key::F11
+        | Key::F12
+        | Key::Home
+        | Key::End
+        | Key::PageUp
+        | Key::PageDown
+        | Key::Insert
+        | Key::Delete
+        | Key::Pause => globe,
+        Key::Numpad0
+        | Key::Numpad1
+        | Key::Numpad2
+        | Key::Numpad3
+        | Key::Numpad4
+        | Key::Numpad5
+        | Key::Numpad6
+        | Key::Numpad7
+        | Key::Numpad8
+        | Key::Numpad9
+        | Key::NumpadMultiply
+        | Key::NumpadAdd
+        | Key::NumpadEnter
+        | Key::NumpadSubtract
+        | Key::NumpadDecimal
+        | Key::NumpadDivide => keypad,
+        _ => CGEventFlags::CGEventFlagNull,
+    }
+}
+
+/// The flags a key event goes out with: the ones it was made with, less every flag a key's state
+/// decides ([`modifier_flag`], [`key_flags`]), plus the modifiers held and, on a press, the key's
+/// own.
+pub fn event_flags(
+    made: CGEventFlags,
+    key: Key,
+    pressed: bool,
+    modifiers: &Modifiers,
+) -> CGEventFlags {
+    let decided = modifier_mask()
+        | CGEventFlags::CGEventFlagSecondaryFn
+        | CGEventFlags::CGEventFlagNumericPad;
+    let own = if pressed {
+        key_flags(key)
+    } else {
+        CGEventFlags::CGEventFlagNull
+    };
+    (made - decided) | modifiers.flags() | own
+}
+
 /// A keyboard over `CGEvent`.
 pub struct CgKeyboard {
     source: CGEventSource,
@@ -245,13 +311,18 @@ impl CgKeyboard {
         })
     }
 
-    /// The event for a press or release, carrying the modifiers this keyboard holds.
+    /// The event for a press or release, with the flags [`event_flags`] gives it.
     pub fn event(&mut self, key: Key, pressed: bool) -> Result<CGEvent> {
         self.modifiers.update(key, pressed);
         let event =
             CGEvent::new_keyboard_event(self.source.clone(), keymap::to_keycode(key), pressed)
                 .map_err(|_| Error::backend("keyboard event could not be created"))?;
-        event.set_flags((event.get_flags() - modifier_mask()) | self.modifiers.flags());
+        event.set_flags(event_flags(
+            event.get_flags(),
+            key,
+            pressed,
+            &self.modifiers,
+        ));
         Ok(event)
     }
 }
@@ -264,8 +335,18 @@ impl Keyboard for CgKeyboard {
 
     fn text(&mut self, text: &str) -> Result<()> {
         for pressed in [true, false] {
-            let event = CGEvent::new_keyboard_event(self.source.clone(), 0, pressed)
-                .map_err(|_| Error::backend("keyboard event could not be created"))?;
+            let event = CGEvent::new_keyboard_event(
+                self.source.clone(),
+                keymap::to_keycode(Key::A),
+                pressed,
+            )
+            .map_err(|_| Error::backend("keyboard event could not be created"))?;
+            event.set_flags(event_flags(
+                event.get_flags(),
+                Key::A,
+                pressed,
+                &self.modifiers,
+            ));
             event.set_string(text);
             event.post(CGEventTapLocation::HID);
         }
