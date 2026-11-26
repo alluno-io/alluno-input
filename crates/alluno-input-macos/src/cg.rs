@@ -17,7 +17,9 @@ use core_foundation_sys::dictionary::CFDictionaryRef;
 use core_foundation_sys::preferences::{CFPreferencesCopyAppValue, kCFPreferencesAnyApplication};
 use core_foundation_sys::string::CFStringRef;
 use core_graphics::display::CGDisplay;
-use core_graphics::event::{CGEvent, CGEventTapLocation, CGEventType, CGMouseButton, EventField};
+use core_graphics::event::{
+    CGEvent, CGEventFlags, CGEventTapLocation, CGEventType, CGMouseButton, EventField,
+};
 use core_graphics::event_source::{CGEventSource, CGEventSourceStateID};
 use core_graphics::geometry::CGPoint;
 use foreign_types::ForeignType;
@@ -181,9 +183,55 @@ impl Desktop {
     }
 }
 
+/// The modifier keys a keyboard holds down.
+#[derive(Debug, Default)]
+pub struct Modifiers {
+    held: Vec<Key>,
+}
+
+impl Modifiers {
+    /// Records a press or release; a key that is no modifier changes nothing.
+    pub fn update(&mut self, key: Key, pressed: bool) {
+        if modifier_flag(key).is_none() {
+            return;
+        }
+        self.held.retain(|held| *held != key);
+        if pressed {
+            self.held.push(key);
+        }
+    }
+
+    /// The flags of the modifiers held down.
+    pub fn flags(&self) -> CGEventFlags {
+        self.held
+            .iter()
+            .filter_map(|key| modifier_flag(*key))
+            .fold(CGEventFlags::CGEventFlagNull, |flags, flag| flags | flag)
+    }
+}
+
+/// The flag a modifier key sets, `None` for any other key.
+pub fn modifier_flag(key: Key) -> Option<CGEventFlags> {
+    Some(match key {
+        Key::ShiftLeft | Key::ShiftRight => CGEventFlags::CGEventFlagShift,
+        Key::ControlLeft | Key::ControlRight => CGEventFlags::CGEventFlagControl,
+        Key::AltLeft | Key::AltRight => CGEventFlags::CGEventFlagAlternate,
+        Key::Meta => CGEventFlags::CGEventFlagCommand,
+        _ => return None,
+    })
+}
+
+fn modifier_mask() -> CGEventFlags {
+    CGEventFlags::CGEventFlagShift
+        | CGEventFlags::CGEventFlagControl
+        | CGEventFlags::CGEventFlagAlternate
+        | CGEventFlags::CGEventFlagCommand
+}
+
 /// A keyboard over `CGEvent`.
 pub struct CgKeyboard {
     source: CGEventSource,
+    modifiers: Modifiers,
     _thread: PhantomData<*const ()>,
 }
 
@@ -192,17 +240,25 @@ impl CgKeyboard {
     pub fn open() -> Result<Self> {
         Ok(Self {
             source: source()?,
+            modifiers: Modifiers::default(),
             _thread: PhantomData,
         })
+    }
+
+    /// The event for a press or release, carrying the modifiers this keyboard holds.
+    pub fn event(&mut self, key: Key, pressed: bool) -> Result<CGEvent> {
+        self.modifiers.update(key, pressed);
+        let event =
+            CGEvent::new_keyboard_event(self.source.clone(), keymap::to_keycode(key), pressed)
+                .map_err(|_| Error::backend("keyboard event could not be created"))?;
+        event.set_flags((event.get_flags() - modifier_mask()) | self.modifiers.flags());
+        Ok(event)
     }
 }
 
 impl Keyboard for CgKeyboard {
     fn key(&mut self, key: Key, pressed: bool) -> Result<()> {
-        let event =
-            CGEvent::new_keyboard_event(self.source.clone(), keymap::to_keycode(key), pressed)
-                .map_err(|_| Error::backend("keyboard event could not be created"))?;
-        event.post(CGEventTapLocation::HID);
+        self.event(key, pressed)?.post(CGEventTapLocation::HID);
         Ok(())
     }
 
